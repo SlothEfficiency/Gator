@@ -42,12 +42,12 @@ func write(c Config) error {
 	return err
 }
 
-func SetUser(user string) error {
-	c, err := Read()
+func (c *Config) SetUser(user string) error {
+	config, err := Read()
 	if err != nil {
 		return err
 	}
 
-	c.CurrentUserName = user
-	return write(c)
+	config.CurrentUserName = user
+	return write(config)
 }
