@@ -1,7 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"time"
+
+	"github.com/SlothEfficiency/Gator/internal/database"
+	"github.com/google/uuid"
 )
 
 type commands struct {
@@ -24,10 +29,55 @@ func handlerLogin(s *state, cmd command) error {
 	if len(cmd.Arguments) >= 2 {
 		return fmt.Errorf("Too many argument: Only 1 username is required")
 	}
-	err := s.Config.SetUser(cmd.Arguments[0])
+
+	name := cmd.Arguments[0]
+
+	context := context.Background()
+	user, err := s.db.GetUser(context, name)
+
 	if err != nil {
 		return err
 	}
-	fmt.Printf("User %s was logged in.\n", cmd.Arguments[0])
+
+	err = s.Config.SetUser(cmd.Arguments[0])
+	if err != nil {
+		return err
+	}
+	fmt.Printf("User %s was logged in.\n", user.Name)
+	return nil
+}
+
+func handlerRegister(s *state, cmd command) error {
+	if len(cmd.Arguments) == 0 {
+		return fmt.Errorf("Missing argument: Username is required")
+	}
+	if len(cmd.Arguments) >= 2 {
+		return fmt.Errorf("Too many argument: Only 1 username is required")
+	}
+	context := context.Background()
+	parameters := database.CreateUserParams{
+		ID:        uuid.New(),
+		Name:      cmd.Arguments[0],
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	user, err := s.db.CreateUser(context, parameters)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%s was created as User.\n", user.Name)
+	fmt.Println(user)
+	return s.Config.SetUser(user.Name)
+}
+
+func handlerReset(s *state, cmd command) error {
+	err := s.db.Reset(context.Background())
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("All users deleted.")
 	return nil
 }
