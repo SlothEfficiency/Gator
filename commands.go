@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/SlothEfficiency/Gator/internal/database"
+	"github.com/SlothEfficiency/Gator/internal/rss"
 	"github.com/google/uuid"
 )
 
@@ -95,5 +96,14 @@ func handlerUsers(s *state, cmd command) error {
 			fmt.Printf("* %s\n", user)
 		}
 	}
+	return nil
+}
+
+func handleAgg(s *state, cmd command) error {
+	rssFeed, err := rss.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if err != nil {
+		return err
+	}
+	fmt.Println(*rssFeed)
 	return nil
 }
