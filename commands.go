@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/SlothEfficiency/Gator/internal/database"
@@ -224,4 +225,36 @@ func handleUnfollow(s *state, cmd command, u database.User) error {
 	}
 	err = s.db.DeleteFeedFollow(context.Background(), parameters)
 	return err
+}
+
+func handleBrowse(s *state, cmd command, u database.User) error {
+	limit := 2
+	var err error
+
+	if len(cmd.Arguments) == 1 {
+		limit, err = strconv.Atoi(cmd.Arguments[0])
+		if err != nil {
+			return err
+		}
+	} else if len(cmd.Arguments) >= 2 {
+		return fmt.Errorf("browse takes maximum 1 argument (limit)")
+	}
+
+	parameters := database.GetPostPerUserParams{
+		Limit:  int32(limit),
+		UserID: u.ID,
+	}
+	posts, err := s.db.GetPostPerUser(context.Background(), parameters)
+	if err != nil {
+		return err
+	}
+
+	for _, post := range posts {
+		description := ""
+		if post.Description.Valid == true {
+			description = post.Description.String
+		}
+		fmt.Printf("Title: \"%s\", URL: \"%s\", Description: \"%s\", Published At: \"%v\"\n", post.Title, post.Url, description, post.PublishedAt)
+	}
+	return nil
 }
