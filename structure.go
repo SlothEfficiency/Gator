@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/SlothEfficiency/Gator/internal/config"
-	"github.com/SlothEfficiency/Gator/internal/database"
+	"github.com/SlothEfficiency/gator/internal/config"
+	"github.com/SlothEfficiency/gator/internal/database"
 )
 
 type state struct {

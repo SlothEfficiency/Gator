@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/SlothEfficiency/Gator/internal/database"
-	"github.com/SlothEfficiency/Gator/internal/rss"
+	"github.com/SlothEfficiency/gator/internal/database"
+	"github.com/SlothEfficiency/gator/internal/rss"
 	"github.com/google/uuid"
 )
 

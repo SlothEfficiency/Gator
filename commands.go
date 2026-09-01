@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/SlothEfficiency/Gator/internal/database"
+	"github.com/SlothEfficiency/gator/internal/database"
 	"github.com/google/uuid"
 )
 

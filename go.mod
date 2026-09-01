@@ -1,4 +1,4 @@
-module github.com/SlothEfficiency/Gator
+module github.com/SlothEfficiency/gator
 
 go 1.26.5
 
