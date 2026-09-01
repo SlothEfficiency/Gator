@@ -34,6 +34,11 @@ func main() {
 	commands.register("reset", handlerReset)
 	commands.register("users", handlerUsers)
 	commands.register("agg", handleAgg)
+	commands.register("addfeed", loginCheck(handlerAddFeed))
+	commands.register("feeds", handleListFeeds)
+	commands.register("follow", loginCheck(handleFollow))
+	commands.register("following", handleFollowing)
+	commands.register("unfollow", loginCheck(handleUnfollow))
 
 	input := os.Args
 	if len(input) < 2 {
@@ -45,7 +50,6 @@ func main() {
 		Name:      input[1],
 		Arguments: input[2:],
 	}
-
 	err = commands.run(&s, cmd)
 	if err != nil {
 		fmt.Println(err)

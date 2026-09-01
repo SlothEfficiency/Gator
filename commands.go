@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/SlothEfficiency/Gator/internal/database"
-	"github.com/SlothEfficiency/Gator/internal/rss"
 	"github.com/google/uuid"
 )
 
@@ -100,10 +99,129 @@ func handlerUsers(s *state, cmd command) error {
 }
 
 func handleAgg(s *state, cmd command) error {
-	rssFeed, err := rss.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if len(cmd.Arguments) != 1 {
+		return fmt.Errorf("agg takes exactly 1 argument (time between rss fetches).")
+	}
+	timeBetweenReqs, err := time.ParseDuration(cmd.Arguments[0])
 	if err != nil {
 		return err
 	}
-	fmt.Println(*rssFeed)
+
+	if timeBetweenReqs < time.Second {
+		return fmt.Errorf("Time has to be at least 1s")
+	}
+	ticker := time.NewTicker(timeBetweenReqs)
+	for ; ; <-ticker.C {
+		err = scrapeFeeds(s)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
+func handlerAddFeed(s *state, cmd command, u database.User) error {
+	if len(cmd.Arguments) != 2 {
+		return fmt.Errorf("addfeed takes exactly 2 arguments (name, url).")
+	}
+
+	parameters := database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      cmd.Arguments[0],
+		Url:       cmd.Arguments[1],
+		UserID:    u.ID,
+	}
+	feed, err := s.db.CreateFeed(context.Background(), parameters)
+	if err != nil {
+		return err
+	}
+
+	feed_follow_param := database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		FeedID:    feed.ID,
+		UserID:    feed.UserID,
+	}
+	_, err = s.db.CreateFeedFollow(context.Background(), feed_follow_param)
+
+	return err
+}
+
+func handleListFeeds(s *state, cmd command) error {
+	feeds, err := s.db.ListFeeds(context.Background())
+	if err != nil {
+		return err
+	}
+	fmt.Println("List of all feeds:")
+	for _, feed := range feeds {
+		fmt.Printf("Name: %s, url: %s, user who created the feed: %s\n", feed.Name, feed.Url, feed.Username)
+	}
+
 	return nil
+}
+
+func handleFollow(s *state, cmd command, u database.User) error {
+	if len(cmd.Arguments) != 1 {
+		return fmt.Errorf("follow takes exactly 1 argument (url).")
+	}
+
+	feedId, err := s.db.GetFeedID(context.Background(), cmd.Arguments[0])
+	if err != nil {
+		return err
+	}
+
+	parameters := database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		FeedID:    feedId,
+		UserID:    u.ID,
+	}
+	feed, err := s.db.CreateFeedFollow(context.Background(), parameters)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf(
+		"Id: %s, CreatedAt: %s, UpdatedAt: %s, FeedID: %s, UserID: %s, FeedName: %s, UserName: %s\n",
+		feed.ID,
+		feed.CreatedAt,
+		feed.UpdatedAt,
+		feed.FeedID,
+		feed.UserID,
+		feed.FeedName,
+		feed.UserName,
+	)
+	return nil
+}
+
+func handleFollowing(s *state, cmd command) error {
+	feeds, err := s.db.GetFeedFollowsPerUser(context.Background(), s.Config.CurrentUserName)
+	if err != nil {
+		return err
+	}
+	for _, feed := range feeds {
+		fmt.Printf("Feed: %s, Followed by: %s\n", feed.FeedName, feed.UserName)
+	}
+	return nil
+}
+
+func handleUnfollow(s *state, cmd command, u database.User) error {
+	if len(cmd.Arguments) != 1 {
+		return fmt.Errorf("unfollow takes exactly 1 argument (url).")
+	}
+
+	feedId, err := s.db.GetFeedID(context.Background(), cmd.Arguments[0])
+	if err != nil {
+		return err
+	}
+
+	parameters := database.DeleteFeedFollowParams{
+		UserID: u.ID,
+		FeedID: feedId,
+	}
+	err = s.db.DeleteFeedFollow(context.Background(), parameters)
+	return err
 }
